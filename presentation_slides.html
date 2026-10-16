@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VinBus / VinFast BlindSpot BEV & Closed-Loop Perception System — Slide Thuyết Trình</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0a0f18;
+      --bg-card: rgba(18, 27, 41, 0.85);
+      --bg-card-border: rgba(45, 70, 100, 0.5);
+      --accent-cyan: #00d2ff;
+      --accent-green: #00e682;
+      --accent-orange: #ff9f2a;
+      --accent-red: #ff4757;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      user-select: none;
+    }
+
+    /* Ambient Glow background */
+    .ambient-glow {
+      position: fixed;
+      top: -20%;
+      left: 10%;
+      width: 80vw;
+      height: 80vh;
+      background: radial-gradient(circle, rgba(0, 210, 255, 0.08) 0%, rgba(0, 230, 130, 0.03) 40%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Presentation Header */
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      padding: 16px 36px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge-vin {
+      background: linear-gradient(135deg, #0084ff, #00d2ff);
+      color: #fff;
+      font-weight: 800;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      letter-spacing: 1px;
+    }
+
+    .project-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .timer-badge {
+      background: rgba(0, 230, 130, 0.15);
+      border: 1px solid rgba(0, 230, 130, 0.3);
+      color: var(--accent-green);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+    }
+
+    /* Slide Deck Viewport */
+    .deck-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 80px 48px 60px 48px;
+      z-index: 1;
+    }
+
+    .slide {
+      position: absolute;
+      width: min(1360px, 94vw);
+      height: min(760px, 84vh);
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 20px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 210, 255, 0.04);
+      padding: 44px 52px;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      transform: translateY(20px) scale(0.98);
+      pointer-events: none;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow-y: auto;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    /* Slide Header */
+    .slide-meta {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .slide-title {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text-main);
+      line-height: 1.25;
+      margin-bottom: 24px;
+    }
+
+    /* Slide Layout Grids */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      flex: 1;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      flex: 1;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      flex: 1;
+    }
+
+    /* Card Panels */
+    .card {
+      background: rgba(13, 21, 33, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 14px;
+      padding: 22px 24px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 13.5px;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+
+    .card ul li {
+      position: relative;
+      padding-left: 18px;
+    }
+
+    .card ul li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: var(--accent-cyan);
+      font-weight: bold;
+    }
+
+    /* Code & Formula blocks */
+    .formula-box {
+      background: rgba(0, 0, 0, 0.4);
+      border-left: 3px solid var(--accent-cyan);
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--accent-green);
+      margin: 8px 0;
+    }
+
+    /* Big Metric Callouts */
+    .metric-hero {
+      font-size: 44px;
+      font-weight: 800;
+      line-height: 1;
+      margin: 10px 0 6px 0;
+    }
+
+    .metric-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Screenshot Previews */
+    .preview-img {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      margin-top: 12px;
+      transition: transform 0.3s ease;
+    }
+
+    .preview-img:hover {
+      transform: scale(1.02);
+    }
+
+    /* Footer Navigation */
+    footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      padding: 14px 36px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+      backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .slide-progress {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .progress-dot {
+      width: 24px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .progress-dot.active {
+      background: var(--accent-cyan);
+      width: 42px;
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-main);
+      padding: 6px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: var(--accent-cyan);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0084ff, #00d2ff);
+      border: none;
+      color: #fff;
+    }
+
+    /* Title Slide Custom */
+    .title-slide {
+      justify-content: center;
+      align-items: flex-start;
+      padding: 60px 80px;
+    }
+
+    .hero-tag {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: rgba(0, 210, 255, 0.12);
+      border: 1px solid rgba(0, 210, 255, 0.3);
+      color: var(--accent-cyan);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+    }
+
+    .hero-h1 {
+      font-size: 46px;
+      font-weight: 800;
+      line-height: 1.15;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #00d2ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 18px;
+    }
+
+    .hero-sub {
+      font-size: 20px;
+      color: var(--accent-green);
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .hero-desc {
+      font-size: 15px;
+      color: var(--text-muted);
+      max-width: 820px;
+      line-height: 1.6;
+      margin-bottom: 36px;
+    }
+
+    @media print {
+      body {
+        overflow: visible;
+      }
+      .slide {
+        position: relative !important;
+        opacity: 1 !important;
+        transform: none !important;
+        page-break-after: always;
+        height: 100vh !important;
+        width: 100vw !important;
+      }
+      header, footer, .ambient-glow {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="ambient-glow"></div>
+
+  <!-- Top Header -->
+  <header>
+    <div class="brand">
+      <span class="badge-vin">VINBUS · VINFAST</span>
+      <span class="project-name">Track 4 Capstone — BlindSpot BEV & Closed-Loop Perception System</span>
+    </div>
+    <div class="header-controls">
+      <span id="slideCounter">Slide 1 / 10</span>
+      <span class="timer-badge" id="timer">⏱️ 10:00</span>
+      <button class="btn" onclick="toggleFullscreen()">⛶ Toàn màn hình (F)</button>
+    </div>
+  </header>
+
+  <!-- Slide Deck Viewport -->
+  <main class="deck-container">
+
+    <!-- SLIDE 1: Title -->
+    <section class="slide title-slide active" data-slide="1">
+      <span class="hero-tag">VIN PERCEPTION HACKATHON · TRACK 4 CAPSTONE</span>
+      <h1 class="hero-h1">VINBUS / VINFAST BLINDSPOT BEV & TTC SYSTEM</h1>
+      <p class="hero-sub">Hệ Thống Mô Phỏng Cảnh Báo Điểm Mù, Hợp Nhất Camera + IMU & Phanh Tự Động AEB Khép Kín</p>
+      <p class="hero-desc">
+        Giải pháp phần mềm tối ưu hóa 60 FPS thuần NumPy + OpenCV chạy trực tiếp trên máy tính cá nhân. Giải quyết triệt để rủi ro xe máy tạt đầu điểm mù và triệt tiêu sai số rung lắc qua ổ gà cho đội xe điện đô thị Việt Nam.
+      </p>
+
+      <div class="grid-3" style="width: 100%;">
+        <div class="card" style="border-left: 3px solid var(--accent-cyan);">
+          <span class="metric-label">HỢP NHẤT CẢM BIẾN (DAY 8)</span>
+          <div class="metric-hero" style="color: var(--accent-cyan);">-80.1%</div>
+          <p style="font-size: 13px; color: var(--text-muted);">Bù góc chúc động IMU qua ổ gà, giảm sai số RMSE từ 1.41m xuống 0.28m.</p>
+        </div>
+        <div class="card" style="border-left: 3px solid var(--accent-green);">
+          <span class="metric-label">VÒNG LẶP ĐÓNG (DAY 12)</span>
+          <div class="metric-hero" style="color: var(--accent-green);">TTC &lt; 2.1s</div>
+          <p style="font-size: 13px; color: var(--text-muted);">Dự báo quỹ đạo Kalman 2.0s, tự động phanh khẩn cấp dừng an toàn >2m.</p>
+        </div>
+        <div class="card" style="border-left: 3px solid var(--accent-orange);">
+          <span class="metric-label">TIẾT KIỆM CHI PHÍ</span>
+          <div class="metric-hero" style="color: var(--accent-orange);">$900,000</div>
+          <p style="font-size: 13px; color: var(--text-muted);">Tiết kiệm chi phí LiDAR cho 300 xe VinBus nhờ tận dụng Camera + IMU sẵn có.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 2: Problem Statement -->
+    <section class="slide" data-slide="2">
+      <span class="slide-meta">BỐI CẢNH THỰC TẾ & BÀI TOÁN KINH DOANH</span>
+      <h2 class="slide-title">Nỗi Đau Điểm Mù Đô Thị & Thách Thức Mặt Đường Việt Nam</h2>
+
+      <div class="grid-2">
+        <div class="card" style="border-top: 3px solid var(--accent-red);">
+          <h3 style="color: var(--accent-red);">🔴 4 Thách Thức Lớn Của Xe Buýt Điện VinBus</h3>
+          <ul>
+            <li><strong>Xe máy tạt đầu điểm mù:</strong> Xe máy thường xuyên vượt ẩu, cắt ngang mũi xe buýt từ bên phải khi xe chuẩn bị cập trạm đón trả khách.</li>
+            <li><strong>Đường xóc gồ ghề (Ổ gà, gờ giảm tốc):</strong> Đầu xe nhấp nhô liên tục khiến góc chúc camera thay đổi $\pm 5.2^\circ$. Camera thông thường ước lượng khoảng cách nhảy sai $2.0\text{m} - 3.5\text{m}$.</li>
+            <li><strong>Nguy cơ Phanh Giật Ảo (Phantom Braking):</strong> Nhận diện sai khoảng cách làm hệ thống phanh gấp nhầm, gây ngã chấn thương hành khách đứng trên xe buýt.</li>
+            <li><strong>Chi phí LiDAR quá đắt đỏ:</strong> Lắp cảm biến LiDAR 3D tốn từ $1,500 - $3,000/xe (ngốn $450k – $900k cho đội xe 300 chiếc VinBus).</li>
+          </ul>
+        </div>
+
+        <div class="card" style="border-top: 3px solid var(--accent-green);">
+          <h3 style="color: var(--accent-green);">🟢 Giải Pháp Đột Phá Của Nhóm</h3>
+          <ul>
+            <li><strong>Tận dụng phần cứng sẵn có:</strong> Chỉ cần 1 Camera góc rộng ADAS + Cảm biến IMU tiêu chuẩn có sẵn trên dây chuyền sản xuất VinFast.</li>
+            <li><strong>Hợp nhất Camera + IMU động (Day 8):</strong> Tích hợp góc nghiêng IMU 100 Hz vào mẫu số của phương trình Homography $Z=0$, triệt tiêu rung lắc tại nguồn.</li>
+            <li><strong>Kalman thích ứng khoảng cách (Day 5):</strong> Gán $R(X) \propto X^2$ theo đúng quang sai Pinhole, biểu diễn bất định bằng Vòng Elip 95%.</li>
+            <li><strong>Closed-Loop AEB (Day 12):</strong> Phanh khẩn cấp tự động $a = -6.5\text{ m/s}^2$ dựa trên hành lang va chạm chiều ngang và chỉ số TTC.</li>
+            <li><strong>Hiệu năng 60 FPS:</strong> Chạy mượt mà trên CPU máy tính cá nhân bằng NumPy + OpenCV, không cần GPU đắt tiền.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 3: System Architecture -->
+    <section class="slide" data-slide="3">
+      <span class="slide-meta">KIẾN TRÚC HỆ THỐNG KHÉP KÍN (CLOSED-LOOP)</span>
+      <h2 class="slide-title">Quy Trình Xử Lý Dữ Liệu Xuyên Suốt 4 Tầng (Pipeline)</h2>
+
+      <div class="grid-4">
+        <div class="card" style="border-top: 3px solid var(--accent-cyan);">
+          <h3 style="color: var(--accent-cyan); font-size: 14px;">1. CẢM BIẾN & MÔ PHỎNG</h3>
+          <p style="font-size: 11px; color: var(--accent-green); font-weight: 700; margin-bottom: 8px;">Day 11: 3D Physics</p>
+          <ul>
+            <li>Vật lý VinBus $v = 8\text{ m/s}$.</li>
+            <li>Hệ thống treo nhún $\Delta\theta(t)$ qua ổ gà.</li>
+            <li>Camera Pinhole ảo $K[R|t]$ 640x420.</li>
+            <li>Trích xuất đáy Bounding Box $(u_{bc}, v_{bc})$.</li>
+          </ul>
+        </div>
+
+        <div class="card" style="border-top: 3px solid var(--accent-green);">
+          <h3 style="color: var(--accent-green); font-size: 14px;">2. BEV & HỢP NHẤT IMU</h3>
+          <p style="font-size: 11px; color: var(--accent-green); font-weight: 700; margin-bottom: 8px;">Day 4 & 8: IPM Fusion</p>
+          <ul>
+            <li>Chiếu ngược tia nhìn xuống mặt phẳng $Z = 0$.</li>
+            <li>Bù góc chúc: $\theta = \theta_0 + \Delta\theta_{\text{IMU}}$.</li>
+            <li>Tọa độ không gian thực $(X_{\text{BEV}}, Y_{\text{BEV}})$.</li>
+            <li>Loại bỏ $100\%$ hiện tượng giật tọa độ.</li>
+          </ul>
+        </div>
+
+        <div class="card" style="border-top: 3px solid var(--accent-orange);">
+          <h3 style="color: var(--accent-orange); font-size: 14px;">3. KALMAN & DỰ BÁO TTC</h3>
+          <p style="font-size: 11px; color: var(--accent-green); font-weight: 700; margin-bottom: 8px;">Day 5 & 7: Tracking</p>
+          <ul>
+            <li>Kalman 4D: $[X, Y, V_X, V_Y]^T$.</li>
+            <li>Nhiễu đo thích ứng $R(X) \propto X^2$.</li>
+            <li>Vòng Elip Bất định 95% ($\chi^2 = 5.991$).</li>
+            <li>Dự báo quỹ đạo $2.0\text{s}$ & tính TTC.</li>
+          </ul>
+        </div>
+
+        <div class="card" style="border-top: 3px solid var(--accent-red);">
+          <h3 style="color: var(--accent-red); font-size: 14px;">4. ĐIỀU KHIỂN ĐÓNG & LOG</h3>
+          <p style="font-size: 11px; color: var(--accent-green); font-weight: 700; margin-bottom: 8px;">Day 12: Closed-Loop</p>
+          <ul>
+            <li>Hành lang va chạm thân xe $|Y| \le 1.75\text{m}$.</li>
+            <li>Kích hoạt phanh khi $TTC < 2.1\text{s}$.</li>
+            <li>Phanh khẩn cấp $a = -6.5\text{ m/s}^2$.</li>
+            <li>Ghi file CSV Replay Data Engine.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 4: Theory BEV & IMU -->
+    <section class="slide" data-slide="4">
+      <span class="slide-meta">CƠ SỞ LÝ THUYẾT · DAY 4 & DAY 8</span>
+      <h2 class="slide-title">Hình Học Chiếu Ngược BEV & Bù Góc Chúc Động Cảm Biến IMU</h2>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3 style="color: var(--accent-cyan);">📐 Đạo Hàm Phép Chiếu Ngược (IPM) $Z=0$</h3>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 6px;">Tia quang học chuẩn hóa từ tâm ảnh $(c_x, c_y)$:</p>
+          <div class="formula-box">x_n = (u - c_x) / f_x,   y_n = (v - c_y) / f_y</div>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 6px;">Phương trình tọa độ khoảng cách dọc $X_{\text{BEV}}$:</p>
+          <div class="formula-box">X_BEV = H_cam * (cos(theta) - y_n * sin(theta)) / (sin(theta) + y_n * cos(theta))</div>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 6px;">Phương trình tọa độ chiều ngang $Y_{\text{BEV}}$:</p>
+          <div class="formula-box">Y_BEV = x_n * (X_BEV * cos(theta) + H_cam * sin(theta))</div>
+          <p style="font-size: 12px; color: #94a3b8; margin-top: 8px;">Tham số xe VinBus: $H_{\text{cam}} = 1.65\text{ m}$, $\theta_{\text{nominal}} = 10^\circ$.</p>
+        </div>
+
+        <div class="card">
+          <h3 style="color: var(--accent-orange);">⚡ Đột Phá Hợp Nhất Con Quay Hồi Chuyển IMU</h3>
+          <ul>
+            <li><strong>Nguyên nhân sai số nảy tọa độ:</strong> Khi xe qua ổ gà, đầu xe nhấp nhô $\Delta\theta(t) \in [\pm 5.2^\circ]$. Nếu dùng góc $\theta$ cố định, mẫu số $(\sin\theta + y_n \cos\theta)$ bị lệch mạnh, làm $X$ nhảy loạn xạ sai lệch $2.0\text{m} - 3.5\text{m}$.</li>
+            <li><strong>Thuật toán bù trừ góc nghiêng:</strong>
+              <div class="formula-box">theta(t) = theta_nominal + Delta_theta_IMU(t)</div>
+            </li>
+            <li><strong>Hiệu quả kiểm chứng tại Kịch bản 2:</strong>
+              <br>• Sai số Raw BEV (không IMU): $\text{RMSE} = 1.41\text{ m}$
+              <br>• Sai số IMU + Kalman: $\text{RMSE} = 0.28\text{ m}$
+              <br>👉 <strong>Giảm ngay 80% sai số đo đạc trên đường xóc!</strong>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 5: Theory Kalman -->
+    <section class="slide" data-slide="5">
+      <span class="slide-meta">CƠ SỞ LÝ THUYẾT · DAY 5 & DAY 7</span>
+      <h2 class="slide-title">Bộ Lọc Kalman Tuyến Tính 2D, Nhiễu Thích Ứng & Elip 95%</h2>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3 style="color: var(--accent-cyan);">🎯 Thuật Toán Kalman Tuyến Tính 4 Chiều</h3>
+          <ul>
+            <li><strong>Vector trạng thái:</strong> $\mathbf{x} = [X, Y, V_X, V_Y]^T \in \mathbb{R}^4$.</li>
+            <li><strong>Mô hình vận tốc không đổi (Constant Velocity):</strong>
+              <div class="formula-box">x_{k|k-1} = F x_{k-1},   P_{k|k-1} = F P F^T + Q</div>
+            </li>
+            <li><strong>Nhiễu đo thích ứng khoảng cách $R(X)$:</strong>
+              <div class="formula-box">R(X) = R_base * max(1.0, (X / 10.0)^2)</div>
+              Theo quang học Pinhole $dX \propto X^2 dv$, vật thể càng xa thì độ bất định camera càng lớn. Thuật toán tự động giảm độ tin cậy vào đo lường ở xa để chống nhiễu giật cục.
+            </li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3 style="color: var(--accent-green);">⭕ Vòng Elip Bất Định 95% & Xử Lý Che Khuất</h3>
+          <ul>
+            <li><strong>Phân rã trị riêng ma trận vị trí $\mathbf{P}_{XY}$:</strong>
+              <div class="formula-box">a = sqrt(5.991 * lambda_1),   b = sqrt(5.991 * lambda_2)</div>
+              với $\chi^2_{0.95, 2} = 5.991$ tương ứng mức tin cậy 95%.
+            </li>
+            <li><strong>Cơ chế Dead Reckoning khi bị che khuất (Scenario 3):</strong>
+              Khi người đi bộ khuất sau xe tải, tracker giữ nhãn `OCCLUDED -> KALMAN PREDICT`.
+            </li>
+            <li><strong>Hành vi trực quan:</strong> Vòng elip tự phình to ra để báo hiệu độ bất định tăng cao, và lập tức thu nhỏ lại khi người đi bộ bước ra khỏi đuôi xe tải.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 6: Demo Scenarios 1 & 2 -->
+    <section class="slide" data-slide="6">
+      <span class="slide-meta">KIỂM CHỨNG THỰC NGHIỆM · KỊCH BẢN 1 & 2</span>
+      <h2 class="slide-title">Cắt Ngang Điểm Mù & Bù Trừ Rung Lắc Ổ Gà</h2>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3 style="color: var(--accent-cyan);">Kịch Bản 1: Xe Máy Cắt Điểm Mù (Phím [1])</h3>
+          <p style="font-size: 13px; color: var(--text-muted);">
+            Xe máy tạt đầu từ điểm mù bên phải với closing speed lớn. Hệ thống dự báo quỹ đạo, tính $TTC = 2.0\text{s} < 2.1\text{s}$ và kích hoạt phanh AEB dừng xe an toàn.
+          </p>
+          <img src="logs/scenario_1_preview.png" alt="Scenario 1 Preview" class="preview-img">
+        </div>
+
+        <div class="card">
+          <h3 style="color: var(--accent-green);">Kịch Bản 2: Đường Xóc Ổ Gà (Phím [2] & [P])</h3>
+          <p style="font-size: 13px; color: var(--text-muted);">
+            Bấm [P] tạo cú xóc $+5.2^\circ$. Chấm đỏ (Raw) nhảy loạn xạ $3.5\text{m}$, trong khi Chấm xanh (IMU+Kalman) bám chặt Ground Truth trắng (giảm 80% RMSE).
+          </p>
+          <img src="logs/scenario_2_preview.png" alt="Scenario 2 Preview" class="preview-img">
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 7: Demo Scenarios 3 & 4 -->
+    <section class="slide" data-slide="7">
+      <span class="slide-meta">KIỂM CHỨNG THỰC NGHIỆM · KỊCH BẢN 3 & 4</span>
+      <h2 class="slide-title">Xử Lý Che Khuất Sau Xe Tải & Phân Tích Ca Lỗi Chủ Đích</h2>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3 style="color: var(--accent-orange);">Kịch Bản 3: Che Khuất 100% Sau Xe Tải (Phím [3])</h3>
+          <p style="font-size: 13px; color: var(--text-muted);">
+            Người đi bộ bị xe tải che khuất 100% trong 1.5s. Bộ lọc Kalman duy trì Dead Reckoning, Elip phình to báo bất định và tự co lại khi người xuất hiện.
+          </p>
+          <img src="logs/scenario_3_preview.png" alt="Scenario 3 Preview" class="preview-img">
+        </div>
+
+        <div class="card">
+          <h3 style="color: var(--accent-red);">Kịch Bản 4: Ca Lỗi Chủ Đích (Phím [4])</h3>
+          <p style="font-size: 13px; color: var(--text-muted);">
+            Rào chắn $0.78\text{m}$ che bàn chân ($Z \neq 0$). Phép chiếu phẳng phóng tia xuyên hông: Thật $10.6\text{m} \rightarrow$ Đo $18.4\text{m}$ (Sai lệch $+7.8\text{m}$)!
+          </p>
+          <img src="logs/scenario_4_preview.png" alt="Scenario 4 Preview" class="preview-img">
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 8: Metrics & Evidence -->
+    <section class="slide" data-slide="8">
+      <span class="slide-meta">BẰNG CHỨNG ĐỊNH LƯỢNG · DAY 12</span>
+      <h2 class="slide-title">Bảng Số Liệu Đo Kiểm & Replay Data Engine</h2>
+
+      <div class="grid-4" style="margin-bottom: 20px;">
+        <div class="card" style="text-align: center;">
+          <span class="metric-label">GIẢM SAI SỐ RMSE</span>
+          <div class="metric-hero" style="color: var(--accent-green);">-80.1%</div>
+          <p style="font-size: 12px; color: var(--text-muted);">Đường xóc: từ 1.41m về 0.28m.</p>
+        </div>
+        <div class="card" style="text-align: center;">
+          <span class="metric-label">TỐC ĐỘ THỜI GIAN THỰC</span>
+          <div class="metric-hero" style="color: var(--accent-cyan);">60 FPS</div>
+          <p style="font-size: 12px; color: var(--text-muted);">Độ trễ xử lý cực thấp &lt; 2ms CPU.</p>
+        </div>
+        <div class="card" style="text-align: center;">
+          <span class="metric-label">THỜI GIAN PHẢN ỨNG</span>
+          <div class="metric-hero" style="color: var(--accent-orange);">1.8 Giây</div>
+          <p style="font-size: 12px; color: var(--text-muted);">Cảnh báo sớm trước nguy cơ va chạm.</p>
+        </div>
+        <div class="card" style="text-align: center;">
+          <span class="metric-label">REPLAY DATA ENGINE</span>
+          <div class="metric-hero" style="color: var(--accent-cyan);">12 Cột</div>
+          <p style="font-size: 12px; color: var(--text-muted);">Ghi nhận CSV tái hiện lại 100%.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="color: var(--accent-cyan); font-size: 14px;">BẢNG TỔNG HỢP BENCHMARK 4 KỊCH BẢN (python main.py --benchmark)</h3>
+        <ul style="font-size: 12.5px;">
+          <li><strong>Kịch bản 1 (Cắt ngang điểm mù):</strong> Raw RMSE = 0.35m | IMU+Kalman RMSE = 0.12m | TTC kích hoạt AEB = 2.0s | Dừng xe an toàn.</li>
+          <li><strong>Kịch bản 2 (Đường xóc ổ gà +5.2°):</strong> Raw RMSE = 1.41m | IMU+Kalman RMSE = 0.28m | Giảm 80.1% sai số | Triệt tiêu phanh giật ảo.</li>
+          <li><strong>Kịch bản 3 (Xe tải che khuất 100%):</strong> Duy trì track Dead Reckoning 1.5s | Elip phình to báo bất định | Bắt lại mượt mà khi xuất hiện.</li>
+          <li><strong>Kịch bản 4 (Ca lỗi rào chắn 0.78m):</strong> Khoảng cách thật 10.6m $\rightarrow$ Đo 18.4m (+7.8m Overestimation) | Phân tích toán học thuyết phục.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- SLIDE 9: Business Impact -->
+    <section class="slide" data-slide="9">
+      <span class="slide-meta">GIÁ TRỊ ỨNG DỤNG THỰC TIỄN</span>
+      <h2 class="slide-title">Tác Động Kinh Tế & Khả Năng Tích Hợp Vào Xe VinFast</h2>
+
+      <div class="grid-3">
+        <div class="card" style="border-top: 3px solid var(--accent-green);">
+          <h3 style="color: var(--accent-green);">💰 Giá Trị Kinh Tế Trực Tiếp</h3>
+          <ul>
+            <li>Tiết kiệm <strong>$1,500 - $3,000 / xe</strong> chi phí cụm cảm biến LiDAR đắt đỏ.</li>
+            <li>Tổng tiết kiệm <strong>$450,000 - $900,000</strong> cho toàn bộ đội xe 300 chiếc VinBus đô thị.</li>
+            <li>Tận dụng tối đa camera và IMU sẵn có trên xe VinFast thương mại.</li>
+          </ul>
+        </div>
+
+        <div class="card" style="border-top: 3px solid var(--accent-cyan);">
+          <h3 style="color: var(--accent-cyan);">🛡️ An Toàn Giao Thông Đô Thị</h3>
+          <ul>
+            <li>Cảnh báo sớm <strong>1.8s - 2.1s</strong> đối với phương tiện tạt đầu tại giao lộ đông đúc.</li>
+            <li>Triệt tiêu hiện tượng phanh giật ảo (phantom braking) khi qua ổ gà, bảo vệ hành khách đứng.</li>
+            <li>Giảm thiểu tối đa tai nạn điểm mù xe buýt điện.</li>
+          </ul>
+        </div>
+
+        <div class="card" style="border-top: 3px solid var(--accent-orange);">
+          <h3 style="color: var(--accent-orange);">🚀 Khả Năng Mở Rộng Công Nghệ</h3>
+          <ul>
+            <li>Kiến trúc module hóa rõ ràng, dễ dàng kết nối qua mạng CAN bus hoặc ROS2.</li>
+            <li>File CSV log đóng vai trò Data Engine thu thập các ca suýt va chạm cho VinFast ADAS.</li>
+            <li>Dễ dàng bổ sung Radar 77GHz giá rẻ để khắc phục triệt để Ca lỗi 4 ($Z \neq 0$).</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 10: Conclusion & Q&A -->
+    <section class="slide" data-slide="10" style="justify-content: center; align-items: center; text-align: center;">
+      <span class="hero-tag">VIN PERCEPTION HACKATHON · TRACK 4 CAPSTONE</span>
+      <h2 style="font-size: 40px; font-weight: 800; margin: 16px 0; color: #fff;">CẢM ƠN HỘI ĐỒNG GIÁM KHẢO ĐÃ LẮNG NGHE!</h2>
+      <p style="font-size: 18px; color: var(--accent-green); margin-bottom: 24px;">Hệ Thống Sẵn Sàng Live Demo & Trả Lời Câu Hỏi Phản Biện (Q&A)</p>
+
+      <div class="card" style="max-width: 800px; text-align: left; margin-bottom: 24px;">
+        <ul>
+          <li>✔ Hoàn thành trọn vẹn 100% yêu cầu Track 4: Detection $\rightarrow$ BEV $\rightarrow$ IMU Fusion $\rightarrow$ Kalman $\rightarrow$ AEB.</li>
+          <li>✔ Mô phỏng vật lý khép kín 60 FPS mượt mà trên 1 máy tính cá nhân duy nhất.</li>
+          <li>✔ Bằng chứng định lượng rõ ràng: Giảm 80% RMSE trên đường xóc và chứng minh giải tích ca lỗi hình học.</li>
+          <li>✔ Mã nguồn mở đầy đủ trên GitHub: <code>https://github.com/ngminhquyen2710-sketch/hackathon</code></li>
+        </ul>
+      </div>
+
+      <div style="display: flex; gap: 14px;">
+        <button class="btn btn-primary" onclick="goToSlide(1)">↩ Quay lại Slide đầu</button>
+        <button class="btn" onclick="window.print()">🖨️ In ra PDF (Ctrl+P)</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Navigation -->
+  <footer>
+    <div class="slide-progress" id="progressDots"></div>
+    <div class="nav-buttons">
+      <button class="btn" onclick="prevSlide()">◀ Trước (Phím Trái)</button>
+      <button class="btn btn-primary" onclick="nextSlide()">Tiếp Theo (Phím Phải) ▶</button>
+    </div>
+  </footer>
+
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 10;
+
+    function init() {
+      const dotsContainer = document.getElementById('progressDots');
+      for (let i = 1; i <= totalSlides; i++) {
+        const dot = document.createElement('div');
+        dot.className = `progress-dot ${i === 1 ? 'active' : ''}`;
+        dot.onclick = () => goToSlide(i);
+        dotsContainer.appendChild(dot);
+      }
+      updateSlideView();
+      startTimer();
+    }
+
+    function updateSlideView() {
+      document.querySelectorAll('.slide').forEach(slide => {
+        const slideNum = parseInt(slide.getAttribute('data-slide'));
+        slide.classList.toggle('active', slideNum === currentSlide);
+      });
+
+      document.querySelectorAll('.progress-dot').forEach((dot, idx) => {
+        dot.classList.toggle('active', idx + 1 === currentSlide);
+      });
+
+      document.getElementById('slideCounter').textContent = `Slide ${currentSlide} / ${totalSlides}`;
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) {
+        currentSlide++;
+        updateSlideView();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) {
+        currentSlide--;
+        updateSlideView();
+      }
+    }
+
+    function goToSlide(n) {
+      currentSlide = n;
+      updateSlideView();
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        prevSlide();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen();
+      } else if (e.key === 'Home') {
+        goToSlide(1);
+      } else if (e.key === 'End') {
+        goToSlide(totalSlides);
+      }
+    });
+
+    // 10-Minute Presentation Timer
+    let secondsLeft = 600;
+    function startTimer() {
+      const timerEl = document.getElementById('timer');
+      setInterval(() => {
+        if (secondsLeft > 0) {
+          secondsLeft--;
+          const mins = Math.floor(secondsLeft / 60);
+          const secs = secondsLeft % 60;
+          timerEl.textContent = `⏱️ ${mins}:${secs < 10 ? '0' : ''}${secs}`;
+          if (secondsLeft < 120) {
+            timerEl.style.color = 'var(--accent-red)';
+            timerEl.style.borderColor = 'var(--accent-red)';
+          }
+        }
+      }, 1000);
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
